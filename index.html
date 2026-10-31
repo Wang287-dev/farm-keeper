@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FarmKeeper · 农田管家</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Brand palette - apple orchard */
+    --green-900: #1B4332;
+    --green-800: #2D6A4F;
+    --green-700: #40916C;
+    --green-600: #52B788;
+    --green-500: #74C69D;
+    --green-100: #D8F3DC;
+    --green-50:  #F0FAF2;
+
+    --apple-600: #E63946;
+    --apple-500: #F77F00;
+    --apple-100: #FFE5D9;
+    --cream: #FAF7F0;
+    --sand:  #F5F0E8;
+
+    --ink-900: #14213D;
+    --ink-700: #2B3A4F;
+    --ink-500: #5C6B7A;
+    --ink-300: #9AA6B2;
+    --line: #EAE6DE;
+
+    --bg: #F7F5EF;
+    --surface: #FFFFFF;
+
+    --grad-hero: linear-gradient(135deg, #2D6A4F 0%, #52B788 100%);
+    --grad-cta:  linear-gradient(135deg, #E63946 0%, #F77F00 100%);
+    --grad-warm: linear-gradient(135deg, #FFE5D9 0%, #FFD6A5 100%);
+
+    /* Real photographic imagery (local assets) */
+    --img-orchard: url('assets/orchard.jpg');
+    --img-apple: url('assets/red-apples.jpg');
+    --img-green-apple: url('assets/green-apples.jpg');
+    --img-farmer: url('assets/farmer.jpg');
+    --img-apples-box: url('assets/apples-box.jpg');
+
+    --shadow-sm: 0 2px 8px rgba(20,33,61,.06);
+    --shadow-md: 0 8px 24px rgba(20,33,61,.08);
+    --shadow-lg: 0 16px 40px rgba(20,33,61,.12);
+    --shadow-leaf: 0 8px 24px rgba(45,106,79,.25);
+
+    --radius-sm: 10px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    --radius-xl: 32px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; }
+  body {
+    font-family: 'Noto Sans SC', -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: radial-gradient(circle at 20% 10%, #E8F5E9 0%, var(--bg) 40%) fixed;
+    color: var(--ink-900);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 12px;
+    overflow-x: hidden;
+  }
+
+  /* Ambient background blobs */
+  body::before, body::after {
+    content:''; position:fixed; border-radius:50%; filter: blur(80px); opacity:.5; z-index:0; pointer-events:none;
+  }
+  body::before { width:420px; height:420px; background:#74C69D; top:-120px; left:-120px; }
+  body::after  { width:380px; height:380px; background:#FFD6A5; bottom:-120px; right:-100px; opacity:.4; }
+
+  .stage { position:relative; z-index:1; display:flex; gap:32px; align-items:center; flex-wrap:wrap; justify-content:center; }
+
+  /* Phone frame */
+  .phone {
+    width: 390px;
+    height: 844px;
+    background: #000;
+    border-radius: 52px;
+    padding: 12px;
+    box-shadow: 0 30px 80px rgba(0,0,0,.35), 0 0 0 2px #1a1a1a inset;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .phone::before { /* side buttons */
+    content:''; position:absolute; left:-3px; top:140px; width:3px; height:36px; background:#222; border-radius:2px 0 0 2px;
+  }
+  .phone::after {
+    content:''; position:absolute; right:-3px; top:200px; width:3px; height:60px; background:#222; border-radius:0 2px 2px 0;
+  }
+  .screen {
+    width:100%; height:100%;
+    background: var(--bg);
+    border-radius: 42px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Notch / Dynamic Island */
+  .notch {
+    position:absolute; top:12px; left:50%; transform:translateX(-50%);
+    width:120px; height:34px; background:#000; border-radius:20px; z-index:50;
+  }
+
+  /* Status bar */
+  .statusbar {
+    height: 54px;
+    display:flex; align-items:flex-end; justify-content:space-between;
+    padding: 0 32px 8px;
+    font-size: 15px; font-weight: 600; color: var(--ink-900);
+    position:relative; z-index:40;
+  }
+  .statusbar.dark { color:#fff; }
+  .statusbar .right { display:flex; align-items:center; gap:6px; }
+  .statusbar .sig { font-size:12px; letter-spacing:1px; }
+
+  /* Screen base */
+  .page {
+    position:absolute; inset:0; top:0;
+    display:flex; flex-direction:column;
+    background: var(--bg);
+    opacity:0; pointer-events:none; transform: translateX(24px);
+    transition: opacity .35s ease, transform .35s ease;
+    overflow:hidden;
+  }
+  .page.active { opacity:1; pointer-events:auto; transform: translateX(0); }
+  .page-body { flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
+  .page-body::-webkit-scrollbar { display:none; }
+
+  /* ------ Components ------ */
+  .btn {
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    border:none; cursor:pointer; font-family:inherit; font-weight:600;
+    border-radius: 14px; padding: 14px 22px; font-size:15px;
+    transition: transform .15s ease, box-shadow .2s ease, filter .2s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--grad-cta); color:#fff; box-shadow: 0 8px 20px rgba(230,57,70,.3); }
+  .btn-green   { background: var(--green-800); color:#fff; box-shadow: var(--shadow-leaf); }
+  .btn-ghost   { background: rgba(255,255,255,.9); color: var(--ink-900); border:1px solid var(--line); }
+  .btn-block   { width:100%; }
+  .btn-lg { padding:16px 24px; font-size:16px; border-radius:16px; }
+
+  .chip {
+    display:inline-flex; align-items:center; gap:5px;
+    padding: 5px 12px; border-radius: 999px; font-size:12px; font-weight:500;
+  }
+  .chip-green { background: var(--green-100); color: var(--green-800); }
+  .chip-warm  { background: var(--apple-100); color: var(--apple-600); }
+  .chip-cream { background: #FFF8EE; color: #B5651D; }
+  .chip-line  { background:#fff; border:1px solid var(--line); color: var(--ink-500); }
+
+  .card {
+    background: var(--surface); border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm); overflow:hidden;
+  }
+
+  .section-title {
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 0 4px; margin: 22px 20px 12px;
+  }
+  .section-title h3 { font-size:18px; font-weight:700; }
+  .section-title .more { font-size:13px; color: var(--green-700); font-weight:500; }
+
+  /* Hero image helper */
+  .hero-img {
+    width:100%; height:100%; object-fit:cover; display:block;
+  }
+  .img-placeholder {
+    background: var(--grad-warm);
+    display:flex; align-items:center; justify-content:center;
+    font-size:48px;
+  }
+
+  /* ------ Page: Role Select ------ */
+  .role-hero {
+    flex:1; position:relative;
+    background: var(--grad-hero);
+    background-image: var(--img-orchard);
+    background-size: cover; background-position: center;
+    color:#fff;
+    padding: 0 28px 40px;
+    display:flex; flex-direction:column; justify-content:flex-end;
+    overflow:hidden;
+  }
+  .role-hero::after {
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(180deg, rgba(27,67,50,.55) 0%, rgba(45,106,79,.75) 60%, rgba(27,67,50,.92) 100%);
+    pointer-events:none;
+  }
+  .role-hero .bg-art {
+    position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 80% 20%, rgba(255,255,255,.18), transparent 50%),
+      radial-gradient(circle at 10% 80%, rgba(116,198,157,.5), transparent 55%);
+    z-index:1; pointer-events:none;
+  }
+  .role-hero .brand, .role-hero h1, .role-hero p, .role-hero .role-cards, .role-hero > div:last-child { position:relative; z-index:2; }
+  .role-hero .brand {
+    position:absolute; top:70px; left:28px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .role-hero .logo {
+    width:44px; height:44px; border-radius:14px;
+    background:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:24px; box-shadow: 0 6px 18px rgba(0,0,0,.15);
+  }
+  .role-hero .brand-name { font-size:20px; font-weight:800; letter-spacing:.5px; }
+  .role-hero h1 {
+    font-size:34px; font-weight:900; line-height:1.2;
+    margin-bottom:12px; position:relative;
+    text-shadow: 0 2px 12px rgba(0,0,0,.15);
+  }
+  .role-hero p { font-size:15px; opacity:.92; line-height:1.6; position:relative; max-width:300px; }
+  .role-cards {
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+    margin: 22px 0 10px; position:relative;
+  }
+  .role-card {
+    background: rgba(255,255,255,.14);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border:1px solid rgba(255,255,255,.25);
+    border-radius:20px; padding:20px 16px;
+    cursor:pointer; transition: transform .2s, background .2s;
+  }
+  .role-card:active { transform: scale(.96); }
+  .role-card .icon { font-size:36px; margin-bottom:10px; }
+  .role-card .t { font-size:16px; font-weight:700; }
+  .role-card .d { font-size:12px; opacity:.8; margin-top:4px; }
+  .role-card.selected { background: rgba(255,255,255,.28); border-color:#fff; }
+
+  /* ------ Page: Login ------ */
+  .login-wrap { padding: 24px 28px 0; flex:1; display:flex; flex-direction:column; }
+  .login-back {
+    width:40px; height:40px; border-radius:12px; background:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:20px;
+    box-shadow: var(--shadow-sm); margin-bottom:24px; cursor:pointer;
+  }
+  .login-wrap h2 { font-size:28px; font-weight:800; margin-bottom:6px; }
+  .login-wrap .sub { color: var(--ink-500); font-size:14px; margin-bottom:30px; }
+  .field { margin-bottom:18px; }
+  .field label { font-size:13px; color: var(--ink-500); margin-bottom:8px; display:block; font-weight:500; }
+  .input {
+    width:100%; height:52px; border-radius:14px; border:1.5px solid var(--line);
+    padding: 0 16px; font-size:15px; background:#fff; font-family:inherit;
+    transition: border-color .2s, box-shadow .2s; outline:none;
+  }
+  .input:focus { border-color: var(--green-600); box-shadow: 0 0 0 4px var(--green-100); }
+  .input-row { display:flex; gap:10px; }
+  .input-row .input { flex:1; }
+  .input-row .btn-sms {
+    width:110px; height:52px; border-radius:14px; border:1.5px solid var(--green-700);
+    background: var(--green-50); color: var(--green-800); font-weight:600; font-size:14px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .agree { display:flex; align-items:flex-start; gap:8px; font-size:12px; color: var(--ink-500); margin: 6px 0 20px; line-height:1.5; }
+  .agree .box {
+    width:18px; height:18px; border-radius:5px; border:1.5px solid var(--line);
+    flex-shrink:0; margin-top:1px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:12px;
+  }
+  .agree .box.checked { background: var(--green-700); border-color: var(--green-700); }
+  .agree a { color: var(--green-700); }
+
+  /* ------ Bottom Tab Bar ------ */
+  .tabbar {
+    height: 78px; background: rgba(255,255,255,.92);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-top:1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-around;
+    padding: 8px 8px 20px; position:relative; z-index:30;
+  }
+  .tab {
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    font-size:11px; color: var(--ink-300); cursor:pointer; padding:6px 14px; border-radius:14px;
+    transition: color .2s, background .2s;
+  }
+  .tab .ti { font-size:22px; }
+  .tab.active { color: var(--green-800); font-weight:600; }
+  .tab.active .ti { transform: translateY(-1px); }
+  .tab-fab {
+    width:56px; height:56px; border-radius:50%;
+    background: var(--grad-cta); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:26px;
+    box-shadow: 0 10px 24px rgba(230,57,70,.4);
+    margin-top:-28px; cursor:pointer; transition: transform .15s;
+  }
+  .tab-fab:active { transform: scale(.92); }
+
+  /* ------ C Home: claim list ------ */
+  .home-header {
+    background: var(--grad-hero); color:#fff;
+    padding: 0 20px 28px; border-radius: 0 0 30px 30px;
+    position:relative;
+  }
+  .home-header .row { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .home-header .loc { display:flex; align-items:center; gap:6px; font-size:14px; font-weight:500; }
+  .home-header .avatar {
+    width:38px; height:38px; border-radius:50%; background:#fff; color: var(--green-800);
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px;
+  }
+  .home-header h1 { font-size:24px; font-weight:800; margin-bottom:4px; }
+  .home-header .slogan { font-size:13px; opacity:.9; }
+  .search {
+    margin-top:18px; background:#fff; height:44px; border-radius:14px;
+    display:flex; align-items:center; padding: 0 14px; gap:8px; color: var(--ink-300);
+    box-shadow: 0 4px 14px rgba(0,0,0,.06);
+  }
+  .search input { border:none; outline:none; flex:1; font-size:14px; font-family:inherit; }
+  .search .ic { font-size:16px; }
+
+  .cat-row { display:flex; gap:10px; padding: 18px 20px 4px; overflow-x:auto; }
+  .cat-row::-webkit-scrollbar { display:none; }
+  .cat {
+    flex-shrink:0; padding:8px 16px; border-radius:999px; background:#fff;
+    font-size:13px; font-weight:500; color: var(--ink-500); border:1px solid var(--line);
+  }
+  .cat.on { background: var(--green-800); color:#fff; border-color: var(--green-800); }
+
+  .banner {
+    margin: 14px 20px 0; height:130px; border-radius:20px; position:relative; overflow:hidden;
+    background: var(--grad-warm); display:flex; align-items:center; padding: 0 20px;
+  }
+  .banner .tag { font-size:11px; background:#fff; color: var(--apple-600); padding:3px 10px; border-radius:999px; font-weight:600; display:inline-block; margin-bottom:8px; }
+  .banner h4 { font-size:18px; font-weight:800; color: var(--ink-900); margin-bottom:4px; }
+  .banner p { font-size:12px; color: var(--ink-700); }
+  .banner .emoji { position:absolute; right:18px; bottom:-10px; font-size:90px; opacity:.9; }
+
+  .claim-list { padding: 8px 20px 100px; }
+  .claim-card {
+    background:#fff; border-radius:20px; overflow:hidden; margin-bottom:16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .claim-card .cover {
+    height:170px; position:relative;
+    background-size: cover; background-position: center;
+    background-color: var(--grad-warm);
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .claim-card .cover.apple { background-image: var(--img-apple); }
+  .claim-card .cover.green { background-image: var(--img-green-apple); }
+  .claim-card .cover.box { background-image: var(--img-apples-box); }
+  .claim-card .cover .emoji { font-size:100px; margin-bottom:8px; display:none; }
+  .claim-card .cover .badge {
+    position:absolute; top:12px; left:12px; background: rgba(0,0,0,.5); color:#fff;
+    padding:4px 10px; border-radius:999px; font-size:11px; backdrop-filter:blur(6px);
+  }
+  .claim-card .cover .fav {
+    position:absolute; top:12px; right:12px; width:34px; height:34px; border-radius:50%;
+    background: rgba(255,255,255,.9); display:flex; align-items:center; justify-content:center; font-size:16px;
+  }
+  .claim-card .body { padding:14px 16px 16px; }
+  .claim-card .title { font-size:16px; font-weight:700; margin-bottom:6px; }
+  .claim-card .farmer { display:flex; align-items:center; gap:8px; font-size:12px; color: var(--ink-500); margin-bottom:10px; }
+  .claim-card .farmer .av { width:20px; height:20px; border-radius:50%; background: var(--green-100); display:flex; align-items:center; justify-content:center; font-size:11px; }
+  .claim-card .meta { display:flex; gap:14px; font-size:12px; color: var(--ink-500); margin-bottom:12px; }
+  .claim-card .meta span { display:flex; align-items:center; gap:4px; }
+  .claim-card .price-row { display:flex; align-items:flex-end; justify-content:space-between; }
+  .claim-card .price { color: var(--apple-600); font-weight:800; }
+  .claim-card .price .cur { font-size:13px; }
+  .claim-card .price .num { font-size:22px; }
+  .claim-card .price .unit { font-size:12px; color: var(--ink-500); font-weight:400; }
+  .claim-card .progress { font-size:11px; color: var(--ink-500); text-align:right; }
+  .claim-card .bar { height:5px; background: var(--sand); border-radius:3px; margin-top:4px; overflow:hidden; }
+  .claim-card .bar i { display:block; height:100%; background: var(--grad-cta); border-radius:3px; }
+
+  /* ------ Claim Detail ------ */
+  .detail-cover {
+    height:280px; position:relative;
+    background-image: var(--img-apple);
+    background-size: cover; background-position: center;
+    background-color: var(--grad-warm);
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .detail-cover .emoji { font-size:140px; margin-bottom:10px; display:none; }
+  .detail-cover .topbar {
+    position:absolute; top:0; left:0; right:0; padding: 14px 18px;
+    display:flex; justify-content:space-between;
+  }
+  .detail-cover .icon-btn {
+    width:38px; height:38px; border-radius:50%; background: rgba(255,255,255,.85);
+    display:flex; align-items:center; justify-content:center; font-size:18px; backdrop-filter:blur(6px);
+  }
+  .detail-cover .tag-float {
+    position:absolute; bottom:16px; left:18px; display:flex; gap:8px;
+  }
+  .detail-body { padding: 18px 20px 110px; }
+  .detail-body h1 { font-size:22px; font-weight:800; margin-bottom:8px; }
+  .detail-body .sub { display:flex; align-items:center; gap:10px; color: var(--ink-500); font-size:13px; margin-bottom:16px; }
+  .price-big {
+    display:flex; align-items:baseline; gap:6px; margin-bottom:18px;
+  }
+  .price-big .cur { font-size:16px; color: var(--apple-600); font-weight:700; }
+  .price-big .num { font-size:34px; color: var(--apple-600); font-weight:900; }
+  .price-big .unit { font-size:13px; color: var(--ink-500); }
+  .price-big .old { font-size:13px; color: var(--ink-300); text-decoration:line-through; margin-left:8px; }
+
+  .info-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px; }
+  .info-cell { background:#fff; border-radius:14px; padding:14px 10px; text-align:center; box-shadow: var(--shadow-sm); }
+  .info-cell .v { font-size:16px; font-weight:800; color: var(--green-800); }
+  .info-cell .l { font-size:11px; color: var(--ink-500); margin-top:4px; }
+
+  .detail-section { margin-bottom:24px; }
+  .detail-section h3 { font-size:16px; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+  .detail-section p { font-size:14px; color: var(--ink-700); line-height:1.7; }
+  .timeline-growth { padding-left:6px; }
+  .t-item { display:flex; gap:12px; padding: 10px 0; position:relative; }
+  .t-item:not(:last-child)::before {
+    content:''; position:absolute; left:9px; top:30px; bottom:-4px; width:2px; background: var(--line);
+  }
+  .t-dot { width:18px; height:18px; border-radius:50%; background: var(--green-600); flex-shrink:0; border:3px solid var(--green-100); margin-top:2px; }
+  .t-content .date { font-size:11px; color: var(--ink-300); }
+  .t-content .txt { font-size:13px; color: var(--ink-700); margin-top:2px; }
+
+  .farmer-card {
+    background:#fff; border-radius:18px; padding:16px; display:flex; align-items:center; gap:12px; box-shadow: var(--shadow-sm);
+  }
+  .farmer-card .av {
+    width:50px; height:50px; border-radius:50%; background: var(--green-100);
+    background-image: var(--img-farmer); background-size:cover; background-position:center;
+    display:flex; align-items:center; justify-content:center; font-size:24px;
+  }
+  .farmer-card .av .emoji { display:none; }
+  .farmer-card .info { flex:1; }
+  .farmer-card .nm { font-size:15px; font-weight:700; }
+  .farmer-card .ds { font-size:12px; color: var(--ink-500); margin-top:2px; }
+  .farmer-card .btn-follow { padding:7px 14px; border-radius:999px; background: var(--green-50); color: var(--green-800); font-size:12px; font-weight:600; border:none; }
+
+  .detail-bottom {
+    position:absolute; bottom:0; left:0; right:0; background:#fff;
+    padding: 14px 20px 22px; display:flex; gap:12px; align-items:center;
+    border-top:1px solid var(--line); box-shadow: 0 -4px 20px rgba(0,0,0,.04);
+  }
+  .detail-bottom .ico { width:42px; height:42px; border-radius:12px; background: var(--sand); display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .detail-bottom .btn { flex:1; }
+
+  /* ------ My Orchard ------ */
+  .orchard-hero {
+    background: var(--grad-hero); color:#fff; padding: 0 20px 30px; border-radius: 0 0 32px 32px;
+  }
+  .orchard-hero h1 { font-size:22px; font-weight:800; margin-bottom:14px; }
+  .stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .stat { background: rgba(255,255,255,.16); backdrop-filter:blur(10px); border-radius:14px; padding:12px; text-align:center; }
+  .stat .v { font-size:22px; font-weight:800; }
+  .stat .l { font-size:11px; opacity:.85; margin-top:2px; }
+
+  .my-tree {
+    margin: -20px 20px 0; background:#fff; border-radius:20px; padding:18px;
+    box-shadow: var(--shadow-md); position:relative;
+  }
+  .my-tree .head { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+  .my-tree .av {
+    width:56px; height:56px; border-radius:16px;
+    background-image: var(--img-apple); background-size:cover; background-position:center;
+    background-color: var(--grad-warm);
+    display:flex; align-items:center; justify-content:center; font-size:32px;
+  }
+  .my-tree .av .emoji { display:none; }
+  .my-tree .nm { font-size:17px; font-weight:700; }
+  .my-tree .ds { font-size:12px; color: var(--ink-500); margin-top:3px; }
+  .my-tree .chip-green { position:absolute; top:18px; right:18px; }
+
+  .grow-stage {
+    background: var(--green-50); border-radius:14px; padding:14px; margin-bottom:14px;
+  }
+  .grow-stage .label { font-size:12px; color: var(--green-800); font-weight:600; margin-bottom:10px; display:flex; justify-content:space-between; }
+  .stage-bar { height:8px; background:#fff; border-radius:4px; overflow:hidden; }
+  .stage-bar i { display:block; height:100%; background: var(--grad-hero); border-radius:4px; width:55%; }
+  .stage-nodes { display:flex; justify-content:space-between; margin-top:8px; }
+  .stage-node { font-size:10px; color: var(--ink-500); text-align:center; width:20%; }
+  .stage-node.on { color: var(--green-800); font-weight:700; }
+  .stage-node .dot { width:8px; height:8px; border-radius:50%; background: var(--ink-300); margin: 0 auto 4px; }
+  .stage-node.on .dot { background: var(--green-700); }
+
+  .record-list { margin: 0 20px 100px; }
+  .record-item {
+    background:#fff; border-radius:18px; padding:14px; margin-bottom:12px; box-shadow: var(--shadow-sm);
+    display:flex; gap:12px;
+  }
+  .record-item .pic {
+    width:64px; height:64px; border-radius:12px; flex-shrink:0;
+    background-image: var(--img-orchard); background-size:cover; background-position:center;
+    background-color: var(--grad-warm);
+    display:flex; align-items:center; justify-content:center; font-size:32px;
+  }
+  .record-item .pic .emoji { display:none; }
+  .record-item .r-body { flex:1; }
+  .record-item .r-head { display:flex; justify-content:space-between; align-items:center; }
+  .record-item .r-title { font-size:14px; font-weight:600; }
+  .record-item .r-date { font-size:11px; color: var(--ink-300); }
+  .record-item .r-desc { font-size:12px; color: var(--ink-500); margin-top:4px; line-height:1.5; }
+
+  /* ------ Orders ------ */
+  .order-header { padding: 8px 20px 16px; }
+  .order-header h1 { font-size:22px; font-weight:800; }
+  .order-tabs { display:flex; gap:6px; margin-top:14px; background:#fff; padding:4px; border-radius:12px; box-shadow: var(--shadow-sm); }
+  .order-tab { flex:1; text-align:center; padding:8px; font-size:13px; border-radius:9px; color: var(--ink-500); font-weight:500; cursor:pointer; }
+  .order-tab.on { background: var(--green-800); color:#fff; }
+
+  .order-card {
+    margin: 0 20px 14px; background:#fff; border-radius:18px; padding:16px; box-shadow: var(--shadow-sm);
+  }
+  .order-card .o-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .order-card .shop { font-size:14px; font-weight:600; display:flex; align-items:center; gap:6px; }
+  .order-card .status { font-size:12px; color: var(--apple-600); font-weight:600; }
+  .order-card .status.green { color: var(--green-700); }
+  .order-card .o-body { display:flex; gap:12px; }
+  .order-card .o-pic {
+    width:72px; height:72px; border-radius:12px;
+    background-image: var(--img-apple); background-size:cover; background-position:center;
+    background-color: var(--grad-warm);
+    display:flex; align-items:center; justify-content:center; font-size:38px; flex-shrink:0;
+  }
+  .order-card .o-pic.green { background-image: var(--img-green-apple); }
+  .order-card .o-pic .emoji { display:none; }
+  .order-card .o-info { flex:1; }
+  .order-card .o-title { font-size:14px; font-weight:600; }
+  .order-card .o-spec { font-size:12px; color: var(--ink-500); margin-top:4px; }
+  .order-card .o-foot { display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); }
+  .order-card .o-total { font-size:13px; color: var(--ink-500); }
+  .order-card .o-total b { color: var(--apple-600); font-size:17px; }
+  .order-card .o-actions { display:flex; gap:8px; }
+  .o-btn { padding:7px 14px; border-radius:999px; font-size:12px; font-weight:600; border:1px solid var(--line); background:#fff; color: var(--ink-700); cursor:pointer; }
+  .o-btn.primary { background: var(--grad-cta); color:#fff; border:none; }
+
+  /* ------ Farmer Dashboard (B) ------ */
+  .farm-hero {
+    background: var(--grad-hero); color:#fff; padding: 0 20px 30px; border-radius: 0 0 32px 32px;
+    position:relative; overflow:hidden;
+  }
+  .farm-hero::after {
+    content:''; position:absolute; right:-40px; bottom:-40px; width:180px; height:180px;
+    background: radial-gradient(circle, rgba(255,255,255,.15), transparent 70%); border-radius:50%;
+  }
+  .farm-hero .greet { font-size:14px; opacity:.9; }
+  .farm-hero .name { font-size:24px; font-weight:800; margin:4px 0 18px; }
+  .farm-stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; position:relative; }
+  .f-stat { background: rgba(255,255,255,.16); backdrop-filter:blur(10px); border-radius:14px; padding:12px 8px; text-align:center; }
+  .f-stat .v { font-size:20px; font-weight:800; }
+  .f-stat .l { font-size:10px; opacity:.85; margin-top:3px; }
+
+  .quick-actions {
+    margin: -18px 20px 0; background:#fff; border-radius:20px; padding:18px 8px;
+    box-shadow: var(--shadow-md); display:grid; grid-template-columns:repeat(4,1fr); gap:6px; position:relative;
+  }
+  .qa { display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; padding:8px 4px; border-radius:12px; transition: background .15s; }
+  .qa:active { background: var(--green-50); }
+  .qa .qi { width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:22px; }
+  .qa .qt { font-size:11px; color: var(--ink-700); font-weight:500; }
+  .qi.g1 { background: var(--green-100); }
+  .qi.g2 { background: var(--apple-100); }
+  .qi.g3 { background: #FFE5D9; }
+  .qi.g4 { background: #E0E7FF; }
+
+  .plot-card {
+    margin: 0 20px 14px; background:#fff; border-radius:18px; overflow:hidden; box-shadow: var(--shadow-sm);
+  }
+  .plot-card .pc-head { padding:14px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line); }
+  .plot-card .pc-title { font-size:15px; font-weight:700; }
+  .plot-card .pc-meta { font-size:12px; color: var(--ink-500); }
+  .plot-card .pc-body { padding:14px 16px; display:flex; gap:14px; }
+  .plot-card .pc-pic {
+    width:80px; height:80px; border-radius:12px;
+    background-image: var(--img-orchard); background-size:cover; background-position:center;
+    background-color: var(--grad-warm);
+    display:flex; align-items:center; justify-content:center; font-size:40px; flex-shrink:0;
+  }
+  .plot-card .pc-pic .emoji { display:none; }
+  .plot-card .pc-info { flex:1; }
+  .plot-card .pc-name { font-size:14px; font-weight:600; }
+  .plot-card .pc-row { font-size:12px; color: var(--ink-500); margin-top:5px; display:flex; align-items:center; gap:8px; }
+  .plot-card .pc-foot { padding:10px 16px; background: var(--green-50); display:flex; justify-content:space-between; align-items:center; }
+  .plot-card .pc-foot .txt { font-size:12px; color: var(--green-800); font-weight:500; }
+
+  /* ------ Publish Listing ------ */
+  .pub-wrap { padding: 24px 20px 100px; }
+  .pub-wrap h2 { font-size:22px; font-weight:800; margin-bottom:6px; }
+  .pub-wrap .sub { color: var(--ink-500); font-size:13px; margin-bottom:24px; }
+  .form-card { background:#fff; border-radius:18px; padding:18px; margin-bottom:16px; box-shadow: var(--shadow-sm); }
+  .form-card .label { font-size:13px; font-weight:600; margin-bottom:10px; color: var(--ink-700); }
+  .photo-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .photo-cell {
+    aspect-ratio:1; border-radius:12px; background: var(--sand);
+    display:flex; align-items:center; justify-content:center; font-size:28px; color: var(--ink-300);
+    border:1.5px dashed var(--line);
+  }
+  .photo-cell.filled {
+    background-color: var(--grad-warm);
+    background-size:cover; background-position:center; border:none;
+  }
+  .photo-cell.filled .emoji { display:none; }
+  .form-row { display:flex; gap:12px; }
+  .form-row .field { flex:1; }
+  .select {
+    width:100%; height:48px; border-radius:12px; border:1.5px solid var(--line);
+    padding: 0 14px; font-size:14px; background:#fff; font-family:inherit; display:flex;
+    align-items:center; justify-content:space-between; color: var(--ink-700);
+  }
+  .benefit-tags { display:flex; flex-wrap:wrap; gap:8px; }
+  .benefit-tags .chip { cursor:pointer; }
+  .benefit-tags .chip.on { background: var(--green-800); color:#fff; }
+
+  /* ------ Farmer Orders ------ */
+  .forders-header { padding: 8px 20px 16px; }
+  .forders-header h1 { font-size:22px; font-weight:800; margin-bottom:14px; }
+  .forders-tabs { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; }
+  .forders-tabs::-webkit-scrollbar{display:none;}
+  .forders-tabs .ftab { flex-shrink:0; padding:7px 16px; border-radius:999px; background:#fff; font-size:13px; color: var(--ink-500); border:1px solid var(--line); font-weight:500; }
+  .forders-tabs .ftab.on { background: var(--green-800); color:#fff; border-color: var(--green-800); }
+  .forders-tabs .ftab .n { background: var(--apple-600); color:#fff; font-size:10px; padding:1px 7px; border-radius:999px; margin-left:5px; }
+  .forders-tabs .ftab.on .n { background:#fff; color: var(--green-800); }
+
+  .forder-card {
+    margin: 0 20px 14px; background:#fff; border-radius:18px; padding:16px; box-shadow: var(--shadow-sm);
+  }
+  .forder-card .fh { display:flex; justify-content:space-between; margin-bottom:12px; }
+  .forder-card .buyer { font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .forder-card .bav { width:24px; height:24px; border-radius:50%; background: var(--green-100); display:flex; align-items:center; justify-content:center; font-size:12px; }
+  .forder-card .st { font-size:12px; font-weight:600; color: var(--apple-600); }
+  .forder-card .st.green { color: var(--green-700); }
+  .forder-card .fb { display:flex; gap:12px; }
+  .forder-card .fp {
+    width:60px; height:60px; border-radius:12px;
+    background-image: var(--img-apple); background-size:cover; background-position:center;
+    background-color: var(--grad-warm);
+    display:flex; align-items:center; justify-content:center; font-size:30px; flex-shrink:0;
+  }
+  .forder-card .fp .emoji { display:none; }
+  .forder-card .fi { flex:1; }
+  .forder-card .ft { font-size:13px; font-weight:600; }
+  .forder-card .fd { font-size:11px; color: var(--ink-500); margin-top:3px; }
+  .forder-card .ff { display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); }
+  .forder-card .fa { display:flex; gap:8px; }
+
+  /* ------ Toast ------ */
+  .toast {
+    position:absolute; top:70px; left:50%; transform:translateX(-50%) translateY(-20px);
+    background: rgba(0,0,0,.82); color:#fff; padding:10px 18px; border-radius:12px; font-size:13px;
+    opacity:0; pointer-events:none; transition: all .3s; z-index:100; white-space:nowrap;
+  }
+  .toast.show { opacity:1; transform: translateX(-50%) translateY(0); }
+
+  /* Floating switch for demo */
+  .demo-switch {
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:#fff; border-radius:999px; padding:6px; box-shadow: var(--shadow-lg);
+    display:flex; gap:4px; z-index:100;
+  }
+  .demo-switch button {
+    border:none; background:transparent; padding:8px 18px; border-radius:999px;
+    font-size:13px; font-weight:600; cursor:pointer; color: var(--ink-500); font-family:inherit;
+  }
+  .demo-switch button.on { background: var(--green-800); color:#fff; }
+
+  @media (max-width: 430px) {
+    .phone { width:100vw; height:100vh; border-radius:0; padding:0; box-shadow:none; }
+    .screen { border-radius:0; }
+    .notch { display:none; }
+    body { padding:0; }
+  }
+
+  /* Animations */
+  @keyframes fadeInUp {
+    from { opacity:0; transform: translateY(16px); }
+    to { opacity:1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity:0; }
+    to { opacity:1; }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .claim-card, .plot-card, .order-card, .forder-card, .record-item, .my-tree {
+    animation: fadeInUp .5s ease both;
+  }
+  .claim-card:nth-child(2) { animation-delay:.08s; }
+  .claim-card:nth-child(3) { animation-delay:.16s; }
+  .claim-card:nth-child(4) { animation-delay:.24s; }
+
+  /* Image placeholder background while loading */
+  .claim-card .cover, .detail-cover, .plot-card .pc-pic, .record-item .pic,
+  .order-card .o-pic, .forder-card .fp, .my-tree .av, .farmer-card .av {
+    background-color: #f0ebe0;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="phone">
+    <div class="screen" id="screen">
+      <div class="notch"></div>
+
+      <!-- Toast -->
+      <div class="toast" id="toast">操作成功</div>
+
+      <!-- ============ ROLE SELECT ============ -->
+      <div class="page active" id="p-role">
+        <div class="statusbar dark">
+          <span>9:41</span>
+          <span class="right"><span class="sig">●●●●</span> 🔋</span>
+        </div>
+        <div class="page-body role-hero">
+          <div class="bg-art"></div>
+          <div class="brand">
+            <div class="logo">🌱</div>
+            <div class="brand-name">FarmKeeper</div>
+          </div>
+          <h1>认领一棵果树<br>收获安心与惊喜</h1>
+          <p>直连产地农户，全程见证果树生长。你认领的不只是水果，更是一段田园时光。</p>
+          <div class="role-cards">
+            <div class="role-card" onclick="selectRole('c')">
+              <div class="icon">🍎</div>
+              <div class="t">我是消费者</div>
+              <div class="d">认领果树 · 云种田</div>
+            </div>
+            <div class="role-card" onclick="selectRole('b')">
+              <div class="icon">👨‍🌾</div>
+              <div class="t">我是农户</div>
+              <div class="d">发布标的 · 卖好价</div>
+            </div>
+          </div>
+          <div style="text-align:center; font-size:12px; opacity:.7; margin-top:18px;">登录即代表同意《用户协议》与《隐私政策》</div>
+        </div>
+      </div>
+
+      <!-- ============ LOGIN ============ -->
+      <div class="page" id="p-login">
+        <div class="statusbar dark">
+          <span>9:41</span>
+          <span class="right"><span class="sig">●●●●</span> 🔋</span>
+        </div>
+        <div class="page-body" style="background:var(--grad-hero);">
+          <div class="login-wrap">
+            <div class="login-back" onclick="go('p-role')">‹</div>
+            <h2 id="login-title">欢迎来到 FarmKeeper</h2>
+            <div class="sub" id="login-sub">手机号登录，开启你的田园之旅</div>
+            <div class="field">
+              <label>手机号</label>
+              <input class="input" placeholder="请输入手机号" value="138 **** 8888">
+            </div>
+            <div class="field">
+              <label>验证码</label>
+              <div class="input-row">
+                <input class="input" placeholder="请输入验证码">
+                <div class="btn-sms" onclick="toast('验证码已发送')">获取验证码</div>
+              </div>
+            </div>
+            <div class="agree" onclick="toggleAgree(this)">
+              <div class="box checked">✓</div>
+              <span>我已阅读并同意 <a>《用户协议》</a> 和 <a>《隐私政策》</a>，并授权平台获取必要信息</span>
+            </div>
+            <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()">登录 / 注册</button>
+            <div style="display:flex; justify-content:center; gap:28px; margin-top:30px;">
+              <div style="text-align:center; color:#fff; opacity:.9; cursor:pointer;" onclick="toast('微信登录')">
+                <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 6px;">💬</div>
+                <div style="font-size:12px;">微信</div>
+              </div>
+              <div style="text-align:center; color:#fff; opacity:.9; cursor:pointer;" onclick="toast('Apple登录')">
+                <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 6px;"></div>
+                <div style="font-size:12px;">Apple</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ C: HOME (CLAIM LIST) ============ -->
+      <div class="page" id="p-home">
+        <div class="statusbar dark">
+          <span>9:41</span>
+          <span class="right"><span class="sig">●●●●</span> 🔋</span>
+        </div>
+        <div class="page-body">
+          <div class="home-header">
+            <div class="row">
+              <div class="loc">📍 上海 · 浦东新区</div>
+              <div class="avatar">张</div>
+            </div>
+            <h1>你好，张宝妈 👋</h1>
+            <div class="slogan">今天你的果树又长高了一点</div>
+            <div class="search">
+              <span class="ic">🔍</span>
+              <input placeholder="搜索栖霞苹果、红富士...">
+              <span style="color:var(--green-700);font-size:13px;font-weight:600;">搜索</span>
+            </div>
+          </div>
+
+          <div class="cat-row">
+            <div class="cat on">全部</div>
+            <div class="cat">🍎 红富士</div>
+            <div class="cat">🍏 青苹果</div>
+            <div class="cat">🎁 礼盒装</div>
+            <div class="cat">🏅 地标产品</div>
+          </div>
+
+          <div class="banner">
+            <div>
+              <div class="tag">限时特惠</div>
+              <h4>栖霞苹果认养季</h4>
+              <p>199元起 · 全年陪伴 · 收货溯源</p>
+            </div>
+            <div class="emoji">🍎</div>
+          </div>
+
+          <div class="section-title"><h3>🔥 热门认领</h3><span class="more">查看全部 ›</span></div>
+          <div class="claim-list" id="claimList"></div>
+        </div>
+        <div class="tabbar">
+          <div class="tab active" onclick="go('p-home')"><span class="ti">🏠</span>首页</div>
+          <div class="tab" onclick="go('p-orchard')"><span class="ti">🌳</span>果园</div>
+          <div class="tab-fab" onclick="go('p-detail')">＋</div>
+          <div class="tab" onclick="go('p-orders')"><span class="ti">📦</span>订单</div>
+          <div class="tab" onclick="go('p-role')"><span class="ti">👤</span>我的</div>
+        </div>
+      </div>
+
+      <!-- ============ C: CLAIM DETAIL ============ -->
+      <div class="page" id="p-detail">
+        <div class="statusbar dark">
+          <span>9:41</span>
+          <span class="right"><span class="sig">●●●●</span> 🔋</span>
+        </div>
+        <div class="page-body">
+          <div class="detail-cover">
+            <div class="topbar">
+              <div class="icon-btn" onclick="go('p-home')">‹</div>
+              <div style="display:flex;gap:10px;">
+                <div class="icon-btn" onclick="toast('已分享到朋友圈')">↗</div>
+                <div class="icon-btn" onclick="toast('已收藏')">♡</div>
+              </div>
+            </div>
+            <div class="emoji">🍎</div>
+            <div class="tag-float">
+              <span class="chip" style="background:rgba(0,0,0,.5);color:#fff;">🌱 生长中</span>
+              <span class="chip" style="background:rgba(0,0,0,.5);color:#fff;">📍 山东栖霞</span>
+            </div>
+          </div>
+          <div class="detail-body">
+            <h1>李记果园 · 2026 红富士认养</h1>
+            <div class="sub"><span>⭐ 4.9</span><span>·</span><span>已认养 128 棵</span><span>·</span><span>2.3k 人关注</span></div>
+            <div class="price-big">
+              <span class="cur">¥</span><span class="num">299</span><span class="unit">/ 棵 / 年</span>
+              <span class="old">¥399</span>
+            </div>
+
+            <div class="info-grid">
+              <div class="info-cell"><div class="v">15kg</div><div class="l">预计产量</div></div>
+              <div class="info-cell"><div class="v">11月</div><div class="l">成熟发货</div></div>
+              <div class="info-cell"><div class="v">365天</div><div class="l">陪伴周期</div></div>
+            </div>
+
+            <div class="detail-section">
+              <h3>🍎 关于这个标的</h3>
+              <p>来自山东栖霞核心产区的红富士苹果树，李社长 20 年种植经验，全程农家肥、物理防虫。认领后你将每周收到果树生长照片，11 月成熟后直邮到家，坏果包赔。</p>
+            </div>
+
+            <div class="detail-section">
+              <h3>📅 生长时间线</h3>
+              <div class="timeline-growth">
+                <div class="t-item"><div class="t-dot"></div><div class="t-content"><div class="date">2026-03-15</div><div class="txt">春季修剪完成，果树萌发新芽 🌱</div></div></div>
+                <div class="t-item"><div class="t-dot"></div><div class="t-content"><div class="date">2026-04-22</div><div class="txt">盛花期，蜜蜂授粉进行中 🐝</div></div></div>
+                <div class="t-item"><div class="t-dot"></div><div class="t-content"><div class="date">2026-05-30</div><div class="txt">坐果期，完成第一次疏果 ✂️</div></div></div>
+                <div class="t-item"><div class="t-dot" style="background:var(--apple-600);border-color:var(--apple-100);"></div><div class="t-content"><div class="date">2026-06-18 · 今天</div><div class="txt">果实膨大期，已套袋保护 🍎</div></div></div>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <h3>👨‍🌾 农户信息</h3>
+              <div class="farmer-card">
+                <div class="av"><span class="emoji">🧑‍🌾</span></div>
+                <div class="info">
+                  <div class="nm">李建国 · 李记果园</div>
+                  <div class="ds">山东栖霞 · 种植 20 年 · 200 亩</div>
+                </div>
+                <button class="btn-follow">+ 关注</button>
+              </div>
+            </div>
+          </div>
+          <div class="detail-bottom">
+            <div class="ico" onclick="toast('客服小助手已上线')">💬</div>
+            <div class="ico" onclick="toast('已加入收藏')">♡</div>
+            <button class="btn btn-primary btn-lg" style="flex:2;" onclick="toast('正在跳转支付...')">立即认领 ¥299</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ C: MY ORCHARD ============ -->
+      <div class="page" id="p-orchard">
+        <div class="statusbar dark">
+          <span>9:41</span>
+          <span class="right"><span class="sig">●●●●</span> 🔋</span>
+        </div>
+        <div class="page-body">
+          <div class="orchard-hero">
+            <h1>🌳 我的果园</h1>
+            <div class="stat-row">
+              <div class="stat"><div class="v">3</div><div class="l">认领果树</div></div>
+              <div class="stat"><div class="v">12</div><div class="l">生长记录</div></div>
+              <div class="stat"><div class="v">2</div><div class="l">待收货</div></div>
+            </div>
+          </div>
+
+          <div class="my-tree">
+            <div class="chip chip-green">生长中</div>
+            <div class="head">
+              <div class="av"><span class="emoji">🍎</span></div>
+              <div>
+                <div class="nm">我的红富士 #018</div>
+                <div class="ds">李记果园 · 认领于 2026-03-20</div>
+              </div>
+            </div>
+            <div class="grow-stage">
+              <div class="label"><span>果实膨大期</span><span>55%</span></div>
+              <div class="stage-bar"><i></i></div>
+              <div class="stage-nodes">
+                <div class="stage-node on"><div class="dot"></div>萌芽</div>
+                <div class="stage-node on"><div class="dot"></div>开花</div>
+                <div class="stage-node on"><div class="dot"></div>坐果</div>
+                <div class="stage-node"><div class="dot"></div>膨大</div>
+                <div class="stage-node"><div class="dot"></div>成熟</div>
+              </div>
+            </div>
+            <button class="btn btn-green btn-block" onclick="go('p-detail')">查看果树详情 ›</button>
+          </div>
+
+          <div class="section-title"><h3>📝 农事记录</h3><span class="more">全部 ›</span></div>
+          <div class="record-list">
+            <div class="record-item">
+              <div class="pic"><span class="emoji">🌿</span></div>
+              <div class="r-body">
+                <div class="r-head"><span class="r-title">套袋完成</span><span class="r-date">今天</span></div>
+                <div class="r-desc">果实已全部套袋，防止病虫害和农药残留，预计9月摘袋上色。</div>
+              </div>
+            </div>
+            <div class="record-item">
+              <div class="pic"><span class="emoji">💧</span></div>
+              <div class="r-body">
+                <div class="r-head"><span class="r-title">浇水施肥</span><span class="r-date">3天前</span></div>
+                <div class="r-desc">追施有机肥 + 滴灌2小时，土壤湿度良好。</div>
+              </div>
+            </div>
+            <div class="record-item">
+              <div class="pic"><span class="emoji">✂️</span></div>
+              <div class="r-body">
+                <div class="r-head"><span class="r-title">疏果作业</span><span class="r-date">1周前</span></div>
+                <div class="r-desc">完成疏果，每花序保留1个中心果，保证果实品质。</div>
+              </div>
+            </div>
+            <div class="record-item">
+              <div class="pic"><span class="emoji">🌸</span></div>
+              <div class="r-body">
+                <div class="r-head"><span class="r-title">盛花期</span><span class="r-date">2周前</span></div>
+                <div class="r-desc">全园进入盛花期，蜜蜂授粉，坐果率预计良好。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab" onclick="go('p-home')"><span class="ti">🏠</span>首页</div>
+          <div class="tab active" onclick="go('p-orchard')"><span class="ti">🌳</span>果园</div>
+          <div class="tab-fab" onclick="go('p-detail')">＋</div>
+          <div class="tab" onclick="go('p-orders')"><span class="ti">📦</span>订单</div>
+          <div class="tab" onclick="go('p-role')"><span class="ti">👤</span>我的</div>
+        </div>
+      </div>
+
+      <!-- ============ C: ORDERS ============ -->
+      <div class="page" id="p-orders">
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right"><span class="sig">●●●●</span> 🔋</span>
+        </div>
+        <div class="page-body">
+          <div class="order-header">
+            <h1>我的订单</h1>
+            <div class="order-tabs">
+              <div class="order-tab on">全部</div>
+              <div class="order-tab">待支付</div>
+              <div class="order-tab">待发货</div>
+              <div class="order-tab">待收货</div>
+            </div>
+          </div>
+
+          <div class="order-card">
+            <div class="o-head">
+              <div class="shop">🌳 李记果园</div>
+              <div class="status green">待发货</div>
+            </div>
+              <div class="o-body">
+              <div class="o-pic"><span class="emoji">🍎</span></div>
+              <div class="o-info">
+                <div class="o-title">李记果园 · 2026 红富士认养</div>
+                <div class="o-spec">1棵 · 预计产量15kg · 11月发货</div>
+                <div class="o-spec" style="color:var(--green-700);margin-top:6px;">认领编号 FK20260320018</div>
+              </div>
+            </div>
+            <div class="o-foot">
+              <div class="o-total">实付 <b>¥299.00</b></div>
+              <div class="o-actions">
+                <button class="o-btn" onclick="toast('联系农户中...')">联系农户</button>
+                <button class="o-btn primary" onclick="toast('提醒发货已发送')">提醒发货</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="order-card">
+            <div class="o-head">
+              <div class="shop">🌳 王家庄合作社</div>
+              <div class="status">运输中</div>
+            </div>
+              <div class="o-body">
+              <div class="o-pic green"><span class="emoji">🍏</span></div>
+              <div class="o-info">
+                <div class="o-title">王家庄 · 青森苹果礼盒装</div>
+                <div class="o-spec">5kg · 顺丰冷链 · 已揽收</div>
+                <div class="o-spec" style="color:var(--apple-600);margin-top:6px;">📦 运单 SF1234567890</div>
+              </div>
+            </div>
+            <div class="o-foot">
+              <div class="o-total">实付 <b>¥168.00</b></div>
+              <div class="o-actions">
+                <button class="o-btn" onclick="toast('查看物流详情')">查看物流</button>
+                <button class="o-btn primary" onclick="toast('确认收货成功')">确认收货</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="order-card">
+            <div class="o-head">
+              <div class="shop">🌳 李记果园</div>
+              <div class="status green">已完成</div>
+            </div>
+              <div class="o-body">
+              <div class="o-pic"><span class="emoji">🍎</span></div>
+              <div class="o-info">
+                <div class="o-title">2025 红富士认养 · 已收货</div>
+                <div class="o-spec">1棵 · 15kg · 去年11月收货</div>
+              </div>
+            </div>
+            <div class="o-foot">
+              <div class="o-total">实付 <b>¥299.00</b></div>
+              <div class="o-actions">
+                <button class="o-btn" onclick="toast('扫码溯源')">查看溯源</button>
+                <button class="o-btn primary" onclick="toast('再次认养')">再次认养</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab" onclick="go('p-home')"><span class="ti">🏠</span>首页</div>
+          <div class="tab" onclick="go('p-orchard')"><span class="ti">🌳</span>果园</div>
+          <div class="tab-fab" onclick="go('p-detail')">＋</div>
+          <div class="tab active" onclick="go('p-orders')"><span class="ti">📦</span>订单</div>
+          <div class="tab" onclick="go('p-role')"><span class="ti">👤</span>我的</div>
+        </div>
+      </div>
+
+      <!-- ============ B: FARMER DASHBOARD ============ -->
+      <div class="page" id="p-farm">
+        <div class="statusbar dark">
+          <span>9:41</span>
+          <span class="right"><span class="sig">●●●●</span> 🔋</span>
+        </div>
+        <div class="page-body">
+          <div class="farm-hero">
+            <div class="greet">早上好，李社长</div>
+            <div class="name">李记果园 · 工作台</div>
+            <div class="farm-stat-row">
+              <div class="f-stat"><div class="v">28</div><div class="l">认领中</div></div>
+              <div class="f-stat"><div class="v">5</div><div class="l">待发货</div></div>
+              <div class="f-stat"><div class="v">8.4k</div><div class="l">浏览量</div></div>
+              <div class="f-stat"><div class="v">¥8.9k</div><div class="l">本月收入</div></div>
+            </div>
+          </div>
+
+          <div class="quick-actions">
+            <div class="qa" onclick="go('p-publish')"><div class="qi g1">📝</div><div class="qt">发布标的</div></div>
+            <div class="qa" onclick="go('p-forders')"><div class="qi g2">📦</div><div class="qt">订单管理</div></div>
+            <div class="qa" onclick="toast('地块管理')"><div class="qi g3">🗺️</div><div class="qt">我的地块</div></div>
+            <div class="qa" onclick="toast('数据看板')"><div class="qi g4">📊</div><div class="qt">数据</div></div>
+          </div>
+
+          <div class="section-title"><h3>🌱 我的地块</h3><span class="more" onclick="toast('全部地块')">管理 ›</span></div>
+
+          <div class="plot-card">
+            <div class="pc-head">
+              <div class="pc-title">东山坡 · 红富士 A区</div>
+              <div class="pc-meta">28 棵认养中</div>
+            </div>
+            <div class="pc-body">
+              <div class="pc-pic"><span class="emoji">🌳</span></div>
+              <div class="pc-info">
+                <div class="pc-name">12亩 · 580棵 · 树龄8年</div>
+                <div class="pc-row">📍 山东栖霞 · 唐家泊镇</div>
+                <div class="pc-row">💧 土壤湿度良好 · ⏰ 3天前更新</div>
+              </div>
+            </div>
+            <div class="pc-foot">
+              <span class="txt">当前阶段：果实膨大期 · 套袋完成</span>
+              <span style="color:var(--green-800);font-size:12px;font-weight:600;" onclick="toast('更新农事记录')">+ 更新 ›</span>
+            </div>
+          </div>
+
+          <div class="plot-card">
+            <div class="pc-head">
+              <div class="pc-title">西沟 · 红富士 B区</div>
+              <div class="pc-meta">12 棵认养中</div>
+            </div>
+            <div class="pc-body">
+              <div class="pc-pic"><span class="emoji">🌳</span></div>
+              <div class="pc-info">
+                <div class="pc-name">8亩 · 420棵 · 树龄5年</div>
+                <div class="pc-row">📍 山东栖霞 · 苏家店镇</div>
+                <div class="pc-row">☀️ 光照充足 · ⏰ 1天前更新</div>
+              </div>
+            </div>
+            <div class="pc-foot">
+              <span class="txt">当前阶段：果实膨大期 · 待套袋</span>
+              <span style="color:var(--green-800);font-size:12px;font-weight:600;" onclick="toast('更新农事记录')">+ 更新 ›</span>
+            </div>
+          </div>
+
+          <div class="section-title"><h3>🔔 最新动态</h3></div>
+          <div style="margin:0 20px 100px;">
+            <div class="card" style="padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:center;">
+              <div style="font-size:24px;">🎉</div>
+              <div style="flex:1;">
+                <div style="font-size:13px;font-weight:600;">恭喜！张女士认领了 A区 #018</div>
+                <div style="font-size:11px;color:var(--ink-300);margin-top:2px;">5分钟前 · ¥299</div>
+              </div>
+            </div>
+            <div class="card" style="padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:center;">
+              <div style="font-size:24px;">💬</div>
+              <div style="flex:1;">
+                <div style="font-size:13px;font-weight:600;">王女士留言：果子长得怎么样了？</div>
+                <div style="font-size:11px;color:var(--ink-300);margin-top:2px;">1小时前</div>
+              </div>
+            </div>
+            <div class="card" style="padding:14px 16px;display:flex;gap:12px;align-items:center;">
+              <div style="font-size:24px;">📦</div>
+              <div style="flex:1;">
+                <div style="font-size:13px;font-weight:600;">有 5 个订单待发货，请及时处理</div>
+                <div style="font-size:11px;color:var(--ink-300);margin-top:2px;">今天</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab active" onclick="go('p-farm')"><span class="ti">🏠</span>工作台</div>
+          <div class="tab" onclick="toast('消息中心')"><span class="ti">💬</span>消息</div>
+          <div class="tab-fab" onclick="go('p-publish')">＋</div>
+          <div class="tab" onclick="go('p-forders')"><span class="ti">📦</span>订单</div>
+          <div class="tab" onclick="go('p-role')"><span class="ti">👤</span>我的</div>
+        </div>
+      </div>
+
+      <!-- ============ B: PUBLISH LISTING ============ -->
+      <div class="page" id="p-publish">
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right"><span class="sig">●●●●</span> 🔋</span>
+        </div>
+        <div class="page-body">
+          <div style="padding:8px 20px 0;display:flex;align-items:center;gap:14px;">
+            <div class="login-back" style="margin:0;" onclick="go('p-farm')">‹</div>
+            <h2 style="font-size:20px;font-weight:800;">发布认领标的</h2>
+          </div>
+          <div class="pub-wrap">
+            <div class="form-card">
+              <div class="label">果园实拍图（最多9张）</div>
+              <div class="photo-grid">
+                <div class="photo-cell filled" style="background-image:var(--img-orchard)"><span class="emoji">🌳</span></div>
+                <div class="photo-cell filled" style="background-image:var(--img-apple)"><span class="emoji">🍎</span></div>
+                <div class="photo-cell filled" style="background-image:var(--img-orchard)"><span class="emoji">🌄</span></div>
+                <div class="photo-cell filled" style="background-image:var(--img-farmer)"><span class="emoji">🧑‍🌾</span></div>
+                <div class="photo-cell">＋</div>
+              </div>
+            </div>
+
+            <div class="form-card">
+              <div class="label">标的标题</div>
+              <input class="input" value="李记果园 · 2026 红富士认养" style="height:48px;">
+            </div>
+
+            <div class="form-card">
+              <div class="form-row">
+                <div class="field" style="margin:0;">
+                  <div class="label">所属地块</div>
+                  <div class="select">东山坡 A区 <span>›</span></div>
+                </div>
+                <div class="field" style="margin:0;">
+                  <div class="label">作物品种</div>
+                  <div class="select">红富士 <span>›</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-card">
+              <div class="form-row">
+                <div class="field" style="margin:0;">
+                  <div class="label">认领价格（元/棵/年）</div>
+                  <input class="input" value="299" style="height:48px;">
+                </div>
+                <div class="field" style="margin:0;">
+                  <div class="label">可认领棵数</div>
+                  <input class="input" value="100" style="height:48px;">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-card">
+              <div class="form-row">
+                <div class="field" style="margin:0;">
+                  <div class="label">预计产量（kg/棵）</div>
+                  <input class="input" value="15" style="height:48px;">
+                </div>
+                <div class="field" style="margin:0;">
+                  <div class="label">预计发货</div>
+                  <div class="select">2026年11月 <span>›</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-card">
+              <div class="label">认领权益（多选）</div>
+              <div class="benefit-tags">
+                <span class="chip chip-green on">✓ 全程生长记录</span>
+                <span class="chip chip-green on">✓ 收货溯源码</span>
+                <span class="chip chip-green on">✓ 坏果包赔</span>
+                <span class="chip chip-line">精美礼盒</span>
+                <span class="chip chip-line">线下采摘</span>
+                <span class="chip chip-line">定制铭牌</span>
+              </div>
+            </div>
+
+            <div class="form-card">
+              <div class="label">果园介绍</div>
+              <textarea class="input" style="height:90px;padding:12px;resize:none;line-height:1.6;" rows="3">李记果园位于山东栖霞核心产区，20年种植经验，全程农家肥、物理防虫。认领后每周更新生长照片，11月成熟直邮到家。</textarea>
+            </div>
+
+            <button class="btn btn-green btn-block btn-lg" onclick="toast('标的发布成功，等待审核')">发布认领标的</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ B: FARMER ORDERS ============ -->
+      <div class="page" id="p-forders">
+        <div class="statusbar">
+          <span>9:41</span>
+          <span class="right"><span class="sig">●●●●</span> 🔋</span>
+        </div>
+        <div class="page-body">
+          <div class="forders-header">
+            <h1>认领订单</h1>
+            <div class="forders-tabs">
+              <div class="ftab on">全部<span class="n">33</span></div>
+              <div class="ftab">待发货<span class="n">5</span></div>
+              <div class="ftab">已发货</div>
+              <div class="ftab">已完成</div>
+              <div class="ftab">退款</div>
+            </div>
+          </div>
+
+          <div class="forder-card">
+            <div class="fh">
+              <div class="buyer"><span class="bav">张</span>张女士</div>
+              <div class="st">待发货</div>
+            </div>
+            <div class="fb">
+              <div class="fp"><span class="emoji">🍎</span></div>
+              <div class="fi">
+                <div class="ft">红富士认养 #018</div>
+                <div class="fd">1棵 · ¥299 · 2026-06-18 认领</div>
+                <div class="fd" style="color:var(--green-700);">📦 待填写物流单号</div>
+              </div>
+            </div>
+            <div class="ff">
+              <div style="font-size:12px;color:var(--ink-500);">收货：上海浦东***</div>
+              <div class="fa">
+                <button class="o-btn" onclick="toast('联系买家')">联系</button>
+                <button class="o-btn primary" onclick="toast('跳转发货页面')">去发货</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="forder-card">
+            <div class="fh">
+              <div class="buyer"><span class="bav">李</span>李先生</div>
+              <div class="st">待发货</div>
+            </div>
+            <div class="fb">
+              <div class="fp"><span class="emoji">🍎</span></div>
+              <div class="fi">
+                <div class="ft">红富士认养 #019</div>
+                <div class="fd">1棵 · ¥299 · 2026-06-17 认领</div>
+              </div>
+            </div>
+            <div class="ff">
+              <div style="font-size:12px;color:var(--ink-500);">收货：北京朝阳***</div>
+              <div class="fa">
+                <button class="o-btn" onclick="toast('联系买家')">联系</button>
+                <button class="o-btn primary" onclick="toast('跳转发货页面')">去发货</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="forder-card">
+            <div class="fh">
+              <div class="buyer"><span class="bav">王</span>王女士</div>
+              <div class="st green">已发货</div>
+            </div>
+            <div class="fb">
+              <div class="fp"><span class="emoji">🍎</span></div>
+              <div class="fi">
+                <div class="ft">红富士认养 #015</div>
+                <div class="fd">1棵 · ¥299 · 顺丰 SF9876543210</div>
+              </div>
+            </div>
+            <div class="ff">
+              <div style="font-size:12px;color:var(--ink-500);">深圳南山***</div>
+              <div class="fa">
+                <button class="o-btn" onclick="toast('查看物流')">物流</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab" onclick="go('p-farm')"><span class="ti">🏠</span>工作台</div>
+          <div class="tab" onclick="toast('消息中心')"><span class="ti">💬</span>消息</div>
+          <div class="tab-fab" onclick="go('p-publish')">＋</div>
+          <div class="tab active" onclick="go('p-forders')"><span class="ti">📦</span>订单</div>
+          <div class="tab" onclick="go('p-role')"><span class="ti">👤</span>我的</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  let role = null;
+
+  function go(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelector('.page.active .page-body')?.scrollTo(0,0);
+  }
+
+  function selectRole(r) {
+    role = r;
+    document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+    setTimeout(() => go('p-login'), 250);
+  }
+
+  function doLogin() {
+    if (role === 'b') go('p-farm');
+    else go('p-home');
+  }
+
+  function toggleAgree(el) {
+    const box = el.querySelector('.box');
+    box.classList.toggle('checked');
+    box.textContent = box.classList.contains('checked') ? '✓' : '';
+  }
+
+  let toastTimer;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  // Claim list data
+  const claims = [
+    { emoji:'🍎', title:'李记果园 · 2026 红富士认养', farmer:'李建国', loc:'山东栖霞', yield:'15kg', month:'11月', price:299, old:399, sold:128, total:200, tag:'地标产品' },
+    { emoji:'🍏', title:'王家庄 · 青森苹果礼盒', farmer:'王合作社', loc:'山东栖霞', yield:'10kg', month:'10月', price:168, old:218, sold:56, total:80, tag:'礼盒装' },
+    { emoji:'🍎', title:'张家坡 · 冰糖心红富士', farmer:'张大哥', loc:'山东栖霞', yield:'18kg', month:'11月', price:359, old:459, sold:42, total:100, tag:'热销' },
+    { emoji:'🌳', title:'阳光果园 · 有机苹果认养', farmer:'阳光合作社', loc:'山东栖霞', yield:'12kg', month:'11月', price:399, old:499, sold:88, total:150, tag:'有机' },
+  ];
+  const list = document.getElementById('claimList');
+  if (list) {
+    list.innerHTML = claims.map((c,i) => {
+      const cls = i===1?'green':(i===2?'box':'apple');
+      return `
+      <div class="claim-card" onclick="go('p-detail')">
+        <div class="cover ${cls}">
+          <span class="badge">${c.tag}</span>
+          <div class="fav" onclick="event.stopPropagation();toast('已收藏')">♡</div>
+          <div class="emoji">${c.emoji}</div>
+        </div>
+        <div class="body">
+          <div class="title">${c.title}</div>
+          <div class="farmer"><span class="av">🧑‍🌾</span>${c.farmer} · ${c.loc}</div>
+          <div class="meta">
+            <span>🎁 预计${c.yield}</span>
+            <span>📅 ${c.month}发货</span>
+            <span>🌱 生长中</span>
+          </div>
+          <div class="price-row">
+            <div class="price"><span class="cur">¥</span><span class="num">${c.price}</span><span class="unit">/棵/年 <s style="color:var(--ink-300);text-decoration:line-through;font-weight:400;">¥${c.old}</s></span></div>
+            <div class="progress">已认养 ${c.sold}/${c.total}</div>
+          </div>
+          <div class="bar"><i style="width:${Math.round(c.sold/c.total*100)}%"></i></div>
+        </div>
+      </div>
+    `;
+    }).join('');
+  }
+</script>
+</body>
+</html>
